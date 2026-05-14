@@ -29,11 +29,11 @@ export default function DashboardPage() {
     if (!user) return
     const load = async () => {
       const [leadsRes, imoveisRes, atividadesRes, rLeads, rAct] = await Promise.all([
-        supabase.from('leads').select('status'),
-        supabase.from('imoveis').select('status, valor'),
-        supabase.from('atividades').select('id', { count: 'exact' }).eq('concluida', false),
-        supabase.from('leads').select('id, nome, status, created_at, origem').order('created_at', { ascending: false }).limit(5),
-        supabase.from('atividades').select('id, tipo, descricao, created_at, concluida').order('created_at', { ascending: false }).limit(5),
+        supabase.from('leads').select('*'),
+        supabase.from('imoveis').select('*'),
+        supabase.from('atividades').select('*', { count: 'exact' }).eq('concluida', false),
+        supabase.from('leads').select('*').order('created_at', { ascending: false }).limit(5),
+        supabase.from('atividades').select('*').order('created_at', { ascending: false }).limit(5),
       ])
       const leads = leadsRes.data ?? []
       const imoveis = imoveisRes.data ?? []

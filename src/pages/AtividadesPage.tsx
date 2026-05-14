@@ -35,12 +35,12 @@ export default function AtividadesPage() {
 
   const toggleConcluida = async (id: string, current: boolean) => {
     setAtividades(prev => prev.map(a => a.id === id ? { ...a, concluida: !current } : a))
-    const { error } = await supabase.from('atividades').update({ concluida: !current }).eq('id', id)
+    const { error } = await supabase.from('atividades').update({ concluida: !current } as any).eq('id', id)
     if (error) { toast.error('Erro'); fetch() }
   }
 
   const handleSave = async (data: Partial<Atividade>) => {
-    const { error } = await supabase.from('atividades').insert({ ...data, user_id: user!.id } as Atividade)
+    const { error } = await supabase.from('atividades').insert({ ...data, user_id: user!.id } as any)
     if (error) { toast.error('Erro ao criar'); return }
     toast.success('Atividade criada')
     setModalOpen(false); fetch()

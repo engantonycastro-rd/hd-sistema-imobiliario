@@ -38,11 +38,11 @@ export default function ImoveisPage() {
 
   const handleSave = async (formData: Partial<Imovel>) => {
     if (editing) {
-      const { error } = await supabase.from('imoveis').update(formData).eq('id', editing.id)
+      const { error } = await supabase.from('imoveis').update(formData as any).eq('id', editing.id)
       if (error) { toast.error('Erro ao salvar'); return }
       toast.success('Imóvel atualizado')
     } else {
-      const { error } = await supabase.from('imoveis').insert(formData as Imovel)
+      const { error } = await supabase.from('imoveis').insert(formData as any)
       if (error) { toast.error('Erro ao criar'); return }
       toast.success('Imóvel cadastrado')
     }
@@ -158,7 +158,7 @@ function ImovelFormModal({ open, onClose, imovel, onSave, onDelete }: {
       titulo, tipo, status, valor: Number(valor) || 0, endereco, bairro, cidade, uf,
       quartos: quartos ? Number(quartos) : null, banheiros: banheiros ? Number(banheiros) : null,
       area_m2: area ? Number(area) : null, descricao: descricao || null,
-    })
+    } as any)
   }
 
   return (

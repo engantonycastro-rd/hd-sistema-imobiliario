@@ -21,7 +21,7 @@ const ROLE_BADGE = {
 
 export default function EquipePage() {
   const { user } = useAuth()
-  const { isAdminOrGerente } = useProfile()
+  useProfile() // hook carregado para contexto
   const [team, setTeam] = useState<TeamMember[]>([])
   const [loading, setLoading] = useState(true)
 
@@ -31,12 +31,12 @@ export default function EquipePage() {
       const { data: profiles } = await supabase.from('profiles').select('*').eq('ativo', true).order('nome')
       if (!profiles) { setLoading(false); return }
 
-      const { data: leads } = await supabase.from('leads').select('corretor_id, status')
+      const { data: leads } = await supabase.from('leads').select('*')
 
-      const members = profiles.map(p => {
+      const members: TeamMember[] = profiles.map(p => {
         const myLeads = (leads ?? []).filter(l => l.corretor_id === p.id)
         return {
-          ...p,
+          id: p.id, nome: p.nome, email: p.email, role: p.role, telefone: p.telefone, avatar_url: p.avatar_url, ativo: p.ativo,
           total_leads: myLeads.length,
           leads_ganhos: myLeads.filter(l => l.status === 'ganho').length,
           leads_perdidos: myLeads.filter(l => l.status === 'perdido').length,

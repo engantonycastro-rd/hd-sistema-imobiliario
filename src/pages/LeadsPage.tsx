@@ -42,7 +42,7 @@ export default function LeadsPage() {
     setLeads(prev => prev.map(l => l.id === draggedId ? { ...l, status: newStatus } : l))
     setDraggedId(null)
 
-    const { error } = await supabase.from('leads').update({ status: newStatus }).eq('id', draggedId)
+    const { error } = await supabase.from('leads').update({ status: newStatus } as any).eq('id', draggedId)
     if (error) {
       toast.error('Erro ao mover lead')
       fetchLeads()
@@ -53,11 +53,11 @@ export default function LeadsPage() {
 
   const handleSave = async (formData: Partial<Lead>) => {
     if (editingLead) {
-      const { error } = await supabase.from('leads').update(formData).eq('id', editingLead.id)
+      const { error } = await supabase.from('leads').update(formData as any).eq('id', editingLead.id)
       if (error) { toast.error('Erro ao salvar'); return }
       toast.success('Lead atualizado')
     } else {
-      const { error } = await supabase.from('leads').insert({ ...formData, corretor_id: user?.id } as Lead)
+      const { error } = await supabase.from('leads').insert({ ...formData, corretor_id: user?.id } as any)
       if (error) { toast.error('Erro ao criar lead'); return }
       toast.success('Lead criado')
     }
@@ -182,7 +182,7 @@ function LeadFormModal({ open, onClose, lead, onSave, onDelete }: {
 
   const handleSubmit = () => {
     if (!nome.trim() || !telefone.trim()) { toast.error('Nome e telefone são obrigatórios'); return }
-    onSave({ nome, telefone, email: email || null, origem, status, interesse: interesse || null, observacoes: observacoes || null })
+    onSave({ nome, telefone, email: email || null, origem, status, interesse: interesse || null, observacoes: observacoes || null } as any)
   }
 
   return (

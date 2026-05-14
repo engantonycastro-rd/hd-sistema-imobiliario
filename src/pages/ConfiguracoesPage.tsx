@@ -9,7 +9,7 @@ import toast from 'react-hot-toast'
 
 export default function ConfiguracoesPage() {
   const { user } = useAuth()
-  const { profile, isAdmin } = useProfile()
+  const { profile } = useProfile()
   const [nome, setNome] = useState('')
   const [telefone, setTelefone] = useState('')
   const [saving, setSaving] = useState(false)
@@ -24,7 +24,7 @@ export default function ConfiguracoesPage() {
   const handleSave = async () => {
     if (!user) return
     setSaving(true)
-    const { error } = await supabase.from('profiles').update({ nome, telefone: telefone || null }).eq('id', user.id)
+    const { error } = await supabase.from('profiles').update({ nome, telefone: telefone || null } as any).eq('id', user.id)
     setSaving(false)
     if (error) { toast.error('Erro ao salvar'); return }
     toast.success('Perfil atualizado')
