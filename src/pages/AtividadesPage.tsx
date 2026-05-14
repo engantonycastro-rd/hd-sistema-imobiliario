@@ -1,5 +1,5 @@
 import { useEffect, useState, useCallback } from 'react'
-import { supabase } from '@/lib/supabase'
+import { db } from '@/lib/supabase'
 import { useAuth } from '@/hooks/useAuth'
 import { ATIVIDADE_TIPO_LABEL, formatDateTime } from '@/lib/utils'
 import AppLayout from '@/components/layout/AppLayout'
@@ -25,25 +25,25 @@ export default function AtividadesPage() {
   const [modalOpen, setModalOpen] = useState(false)
   const [filter, setFilter] = useState<'todas' | 'pendentes' | 'concluidas'>('todas')
 
-  const fetch = useCallback(async () => {
-    const { data } = await supabase.from('atividades').select('*').order('created_at', { ascending: false })
-    setAtividades(data ?? [])
+  const fetchData = useCallback(async () => {
+    const { data } = await db.from('atividades').select('*').order('created_at', { ascending: false })
+    setAtividades((data ?? []) as Atividade[])
     setLoading(false)
   }, [])
 
-  useEffect(() => { if (user) fetch() }, [user, fetch])
+  useEffect(() => { if (user) fetchData() }, [user, fetchData])
 
   const toggleConcluida = async (id: string, current: boolean) => {
     setAtividades(prev => prev.map(a => a.id === id ? { ...a, concluida: !current } : a))
-    const { error } = await supabase.from('atividades').update({ concluida: !current } as any).eq('id', id)
-    if (error) { toast.error('Erro'); fetch() }
+    const { error } = await db.from('atividades').update({ concluida: !current }).eq('id', id)
+    if (error) { toast.error('Erro'); fetchData() }
   }
 
-  const handleSave = async (data: Partial<Atividade>) => {
-    const { error } = await supabase.from('atividades').insert({ ...data, user_id: user!.id } as any)
+  const handleSave = async (data: Record<string, unknown>) => {
+    const { error } = await db.from('atividades').insert({ ...data, user_id: user!.id })
     if (error) { toast.error('Erro ao criar'); return }
     toast.success('Atividade criada')
-    setModalOpen(false); fetch()
+    setModalOpen(false); fetchData()
   }
 
   const filtered = atividades.filter(a => {
@@ -111,7 +111,7 @@ export default function AtividadesPage() {
   )
 }
 
-function AtividadeFormModal({ open, onClose, onSave }: { open: boolean; onClose: () => void; onSave: (d: Partial<Atividade>) => void }) {
+function AtividadeFormModal({ open, onClose, onSave }: { open: boolean; onClose: () => void; onSave: (d: Record<string, unknown>) => void }) {
   const [tipo, setTipo] = useState('ligacao'); const [descricao, setDescricao] = useState(''); const [dataAgendada, setDataAgendada] = useState('')
 
   useEffect(() => { if (open) { setTipo('ligacao'); setDescricao(''); setDataAgendada('') } }, [open])

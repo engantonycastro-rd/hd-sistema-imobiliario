@@ -1,5 +1,5 @@
 import { useEffect, useState, useCallback } from 'react'
-import { supabase } from '@/lib/supabase'
+import { db } from '@/lib/supabase'
 import { useAuth } from '@/hooks/useAuth'
 import { formatCurrency, IMOVEL_TIPO_LABEL, IMOVEL_STATUS_LABEL } from '@/lib/utils'
 import AppLayout from '@/components/layout/AppLayout'
@@ -8,11 +8,15 @@ import { Badge } from '@/components/ui/Badge'
 import { EmptyState } from '@/components/ui/EmptyState'
 import { Plus, Home, Search, MapPin, BedDouble, Bath, Maximize } from 'lucide-react'
 import toast from 'react-hot-toast'
-import type { Database } from '@/types/database'
 
-type Imovel = Database['public']['Tables']['imoveis']['Row']
+interface Imovel {
+  id: string; created_at: string; titulo: string; descricao: string | null
+  tipo: string; status: string; valor: number; endereco: string; bairro: string
+  cidade: string; uf: string; quartos: number | null; banheiros: number | null
+  area_m2: number | null; imagens: string[] | null; corretor_id: string | null
+}
 
-const STATUS_COLORS = {
+const STATUS_COLORS: Record<string, string> = {
   disponivel: 'bg-emerald-500/20 text-emerald-400 border-emerald-500/30',
   reservado: 'bg-amber-500/20 text-amber-400 border-amber-500/30',
   vendido: 'bg-blue-500/20 text-blue-400 border-blue-500/30',
@@ -28,31 +32,31 @@ export default function ImoveisPage() {
   const [filterTipo, setFilterTipo] = useState('')
   const [filterStatus, setFilterStatus] = useState('')
 
-  const fetch = useCallback(async () => {
-    const { data } = await supabase.from('imoveis').select('*').order('created_at', { ascending: false })
-    setImoveis(data ?? [])
+  const fetchData = useCallback(async () => {
+    const { data } = await db.from('imoveis').select('*').order('created_at', { ascending: false })
+    setImoveis((data ?? []) as Imovel[])
     setLoading(false)
   }, [])
 
-  useEffect(() => { if (user) fetch() }, [user, fetch])
+  useEffect(() => { if (user) fetchData() }, [user, fetchData])
 
-  const handleSave = async (formData: Partial<Imovel>) => {
+  const handleSave = async (formData: Record<string, unknown>) => {
     if (editing) {
-      const { error } = await supabase.from('imoveis').update(formData as any).eq('id', editing.id)
+      const { error } = await db.from('imoveis').update(formData).eq('id', editing.id)
       if (error) { toast.error('Erro ao salvar'); return }
       toast.success('Imóvel atualizado')
     } else {
-      const { error } = await supabase.from('imoveis').insert(formData as any)
+      const { error } = await db.from('imoveis').insert(formData)
       if (error) { toast.error('Erro ao criar'); return }
       toast.success('Imóvel cadastrado')
     }
-    setModalOpen(false); setEditing(null); fetch()
+    setModalOpen(false); setEditing(null); fetchData()
   }
 
   const handleDelete = async (id: string) => {
     if (!confirm('Excluir este imóvel?')) return
-    await supabase.from('imoveis').delete().eq('id', id)
-    toast.success('Imóvel excluído'); fetch()
+    await db.from('imoveis').delete().eq('id', id)
+    toast.success('Imóvel excluído'); fetchData()
   }
 
   const filtered = imoveis.filter(i => {
@@ -107,8 +111,8 @@ export default function ImoveisPage() {
                 <div className="p-4">
                   <div className="flex items-start justify-between gap-2">
                     <h3 className="text-sm font-semibold truncate">{im.titulo}</h3>
-                    <Badge className={STATUS_COLORS[im.status as keyof typeof STATUS_COLORS]}>
-                      {IMOVEL_STATUS_LABEL[im.status as keyof typeof IMOVEL_STATUS_LABEL]}
+                    <Badge className={STATUS_COLORS[im.status] ?? ''}>
+                      {IMOVEL_STATUS_LABEL[im.status as keyof typeof IMOVEL_STATUS_LABEL] ?? im.status}
                     </Badge>
                   </div>
                   <p className="text-xs text-white/40 flex items-center gap-1 mt-1"><MapPin className="w-3 h-3" />{im.bairro}, {im.cidade}</p>
@@ -132,7 +136,7 @@ export default function ImoveisPage() {
 
 function ImovelFormModal({ open, onClose, imovel, onSave, onDelete }: {
   open: boolean; onClose: () => void; imovel: Imovel | null
-  onSave: (d: Partial<Imovel>) => void; onDelete?: () => void
+  onSave: (d: Record<string, unknown>) => void; onDelete?: () => void
 }) {
   const [titulo, setTitulo] = useState(''); const [tipo, setTipo] = useState('casa'); const [status, setStatus] = useState('disponivel')
   const [valor, setValor] = useState(''); const [endereco, setEndereco] = useState(''); const [bairro, setBairro] = useState('')
@@ -158,7 +162,7 @@ function ImovelFormModal({ open, onClose, imovel, onSave, onDelete }: {
       titulo, tipo, status, valor: Number(valor) || 0, endereco, bairro, cidade, uf,
       quartos: quartos ? Number(quartos) : null, banheiros: banheiros ? Number(banheiros) : null,
       area_m2: area ? Number(area) : null, descricao: descricao || null,
-    } as any)
+    })
   }
 
   return (

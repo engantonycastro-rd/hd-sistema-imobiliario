@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { supabase } from '@/lib/supabase'
+import { db } from '@/lib/supabase'
 import { useAuth } from '@/hooks/useAuth'
 import { useProfile } from '@/hooks/useProfile'
 import AppLayout from '@/components/layout/AppLayout'
@@ -24,7 +24,7 @@ export default function ConfiguracoesPage() {
   const handleSave = async () => {
     if (!user) return
     setSaving(true)
-    const { error } = await supabase.from('profiles').update({ nome, telefone: telefone || null } as any).eq('id', user.id)
+    const { error } = await db.from('profiles').update({ nome, telefone: telefone || null }).eq('id', user.id)
     setSaving(false)
     if (error) { toast.error('Erro ao salvar'); return }
     toast.success('Perfil atualizado')

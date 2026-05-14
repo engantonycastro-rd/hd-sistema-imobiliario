@@ -1,5 +1,5 @@
 import { useEffect, useState, useCallback } from 'react'
-import { supabase } from '@/lib/supabase'
+import { db } from '@/lib/supabase'
 import { useAuth } from '@/hooks/useAuth'
 import { LEAD_STATUS_CONFIG, ORIGEM_LABEL, formatPhone, formatDateTime } from '@/lib/utils'
 import AppLayout from '@/components/layout/AppLayout'
@@ -8,10 +8,14 @@ import { Badge } from '@/components/ui/Badge'
 import { EmptyState } from '@/components/ui/EmptyState'
 import { Plus, Users, Phone, Mail, GripVertical, Search } from 'lucide-react'
 import toast from 'react-hot-toast'
-import type { Database } from '@/types/database'
 
-type Lead = Database['public']['Tables']['leads']['Row']
-type LeadStatus = Lead['status']
+interface Lead {
+  id: string; created_at: string; updated_at: string; nome: string; telefone: string
+  email: string | null; origem: string; status: string; interesse: string | null
+  observacoes: string | null; corretor_id: string | null; imovel_id: string | null
+}
+
+type LeadStatus = 'novo' | 'contato' | 'visita' | 'proposta' | 'negociacao' | 'ganho' | 'perdido'
 
 const KANBAN_COLUMNS: LeadStatus[] = ['novo', 'contato', 'visita', 'proposta', 'negociacao', 'ganho', 'perdido']
 
@@ -25,8 +29,8 @@ export default function LeadsPage() {
   const [draggedId, setDraggedId] = useState<string | null>(null)
 
   const fetchLeads = useCallback(async () => {
-    const { data } = await supabase.from('leads').select('*').order('created_at', { ascending: false })
-    setLeads(data ?? [])
+    const { data } = await db.from('leads').select('*').order('created_at', { ascending: false })
+    setLeads((data ?? []) as Lead[])
     setLoading(false)
   }, [])
 
@@ -42,7 +46,7 @@ export default function LeadsPage() {
     setLeads(prev => prev.map(l => l.id === draggedId ? { ...l, status: newStatus } : l))
     setDraggedId(null)
 
-    const { error } = await supabase.from('leads').update({ status: newStatus } as any).eq('id', draggedId)
+    const { error } = await db.from('leads').update({ status: newStatus }).eq('id', draggedId)
     if (error) {
       toast.error('Erro ao mover lead')
       fetchLeads()
@@ -51,13 +55,13 @@ export default function LeadsPage() {
     }
   }
 
-  const handleSave = async (formData: Partial<Lead>) => {
+  const handleSave = async (formData: Record<string, unknown>) => {
     if (editingLead) {
-      const { error } = await supabase.from('leads').update(formData as any).eq('id', editingLead.id)
+      const { error } = await db.from('leads').update(formData).eq('id', editingLead.id)
       if (error) { toast.error('Erro ao salvar'); return }
       toast.success('Lead atualizado')
     } else {
-      const { error } = await supabase.from('leads').insert({ ...formData, corretor_id: user?.id } as any)
+      const { error } = await db.from('leads').insert({ ...formData, corretor_id: user?.id })
       if (error) { toast.error('Erro ao criar lead'); return }
       toast.success('Lead criado')
     }
@@ -68,7 +72,7 @@ export default function LeadsPage() {
 
   const handleDelete = async (id: string) => {
     if (!confirm('Tem certeza que deseja excluir este lead?')) return
-    const { error } = await supabase.from('leads').delete().eq('id', id)
+    const { error } = await db.from('leads').delete().eq('id', id)
     if (error) { toast.error('Erro ao excluir'); return }
     toast.success('Lead excluído')
     fetchLeads()
@@ -107,25 +111,14 @@ export default function LeadsPage() {
               const cfg = LEAD_STATUS_CONFIG[status]
               const columnLeads = filtered.filter(l => l.status === status)
               return (
-                <div
-                  key={status}
-                  className="flex-shrink-0 w-64"
-                  onDragOver={e => e.preventDefault()}
-                  onDrop={() => handleDrop(status)}
-                >
+                <div key={status} className="flex-shrink-0 w-64" onDragOver={e => e.preventDefault()} onDrop={() => handleDrop(status)}>
                   <div className="flex items-center gap-2 mb-3 px-1">
                     <Badge className={cfg.color}>{cfg.label}</Badge>
                     <span className="text-xs text-white/30">{columnLeads.length}</span>
                   </div>
                   <div className="space-y-2 min-h-[200px]">
                     {columnLeads.map((lead) => (
-                      <div
-                        key={lead.id}
-                        draggable
-                        onDragStart={() => handleDragStart(lead.id)}
-                        onClick={() => { setEditingLead(lead); setModalOpen(true) }}
-                        className="glass-card p-3 cursor-grab active:cursor-grabbing hover:border-glass-border-hover transition-all group"
-                      >
+                      <div key={lead.id} draggable onDragStart={() => handleDragStart(lead.id)} onClick={() => { setEditingLead(lead); setModalOpen(true) }} className="glass-card p-3 cursor-grab active:cursor-grabbing hover:border-glass-border-hover transition-all group">
                         <div className="flex items-start justify-between">
                           <p className="text-sm font-medium truncate flex-1">{lead.nome}</p>
                           <GripVertical className="w-3.5 h-3.5 text-white/15 group-hover:text-white/30 flex-shrink-0" />
@@ -161,7 +154,7 @@ export default function LeadsPage() {
 
 function LeadFormModal({ open, onClose, lead, onSave, onDelete }: {
   open: boolean; onClose: () => void; lead: Lead | null
-  onSave: (data: Partial<Lead>) => void; onDelete?: () => void
+  onSave: (data: Record<string, unknown>) => void; onDelete?: () => void
 }) {
   const [nome, setNome] = useState('')
   const [telefone, setTelefone] = useState('')
@@ -182,7 +175,7 @@ function LeadFormModal({ open, onClose, lead, onSave, onDelete }: {
 
   const handleSubmit = () => {
     if (!nome.trim() || !telefone.trim()) { toast.error('Nome e telefone são obrigatórios'); return }
-    onSave({ nome, telefone, email: email || null, origem, status, interesse: interesse || null, observacoes: observacoes || null } as any)
+    onSave({ nome, telefone, email: email || null, origem, status, interesse: interesse || null, observacoes: observacoes || null })
   }
 
   return (

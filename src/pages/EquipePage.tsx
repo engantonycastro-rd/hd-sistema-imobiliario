@@ -1,7 +1,6 @@
 import { useEffect, useState } from 'react'
-import { supabase } from '@/lib/supabase'
+import { db } from '@/lib/supabase'
 import { useAuth } from '@/hooks/useAuth'
-import { useProfile } from '@/hooks/useProfile'
 import { getInitials } from '@/lib/utils'
 import AppLayout from '@/components/layout/AppLayout'
 import { Badge } from '@/components/ui/Badge'
@@ -13,7 +12,7 @@ interface TeamMember {
   total_leads: number; leads_ganhos: number; leads_perdidos: number; leads_ativos: number
 }
 
-const ROLE_BADGE = {
+const ROLE_BADGE: Record<string, string> = {
   admin: 'bg-purple-500/20 text-purple-400 border-purple-500/30',
   gerente: 'bg-blue-500/20 text-blue-400 border-blue-500/30',
   corretor: 'bg-emerald-500/20 text-emerald-400 border-emerald-500/30',
@@ -21,20 +20,20 @@ const ROLE_BADGE = {
 
 export default function EquipePage() {
   const { user } = useAuth()
-  useProfile() // hook carregado para contexto
   const [team, setTeam] = useState<TeamMember[]>([])
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
     if (!user) return
     const load = async () => {
-      const { data: profiles } = await supabase.from('profiles').select('*').eq('ativo', true).order('nome')
+      const { data: profiles } = await db.from('profiles').select('*').eq('ativo', true).order('nome')
       if (!profiles) { setLoading(false); return }
 
-      const { data: leads } = await supabase.from('leads').select('*')
+      const { data: leads } = await db.from('leads').select('*')
+      const allLeads = (leads ?? []) as { corretor_id: string | null; status: string }[]
 
-      const members: TeamMember[] = profiles.map(p => {
-        const myLeads = (leads ?? []).filter(l => l.corretor_id === p.id)
+      const members: TeamMember[] = (profiles as { id: string; nome: string; email: string; role: string; telefone: string | null; avatar_url: string | null; ativo: boolean }[]).map(p => {
+        const myLeads = allLeads.filter(l => l.corretor_id === p.id)
         return {
           id: p.id, nome: p.nome, email: p.email, role: p.role, telefone: p.telefone, avatar_url: p.avatar_url, ativo: p.ativo,
           total_leads: myLeads.length,
@@ -79,7 +78,7 @@ export default function EquipePage() {
                       <p className="text-sm font-semibold truncate">{m.nome}</p>
                       <p className="text-xs text-white/30 truncate">{m.email}</p>
                     </div>
-                    <Badge className={ROLE_BADGE[m.role as keyof typeof ROLE_BADGE] ?? ROLE_BADGE.corretor}>
+                    <Badge className={ROLE_BADGE[m.role] ?? ROLE_BADGE.corretor}>
                       {m.role}
                     </Badge>
                   </div>

@@ -17,3 +17,8 @@ export const supabase = createClient<Database>(supabaseUrl, supabaseAnonKey, {
     detectSessionInUrl: true,
   },
 })
+
+// Client sem tipos strict para operações de escrita (update/insert/delete)
+// O Supabase SDK com generics causa conflitos de never em .update()/.insert()
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export const db = supabase as any

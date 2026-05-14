@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { useAuth } from '@/hooks/useAuth'
 import { useProfile } from '@/hooks/useProfile'
-import { supabase } from '@/lib/supabase'
+import { db } from '@/lib/supabase'
 import { formatCurrency, LEAD_STATUS_CONFIG, formatDateTime } from '@/lib/utils'
 import AppLayout from '@/components/layout/AppLayout'
 import { Badge } from '@/components/ui/Badge'
@@ -17,26 +17,29 @@ interface DashStats {
   atividadesPendentes: number
 }
 
+interface RecentLead { id: string; nome: string; status: string; created_at: string; origem: string }
+interface RecentAct { id: string; tipo: string; descricao: string; created_at: string; concluida: boolean }
+
 export default function DashboardPage() {
   const { user } = useAuth()
   const { profile } = useProfile()
   const [stats, setStats] = useState<DashStats | null>(null)
-  const [recentLeads, setRecentLeads] = useState<{ id: string; nome: string; status: string; created_at: string; origem: string }[]>([])
-  const [recentActivities, setRecentActivities] = useState<{ id: string; tipo: string; descricao: string; created_at: string; concluida: boolean }[]>([])
+  const [recentLeads, setRecentLeads] = useState<RecentLead[]>([])
+  const [recentActivities, setRecentActivities] = useState<RecentAct[]>([])
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
     if (!user) return
     const load = async () => {
       const [leadsRes, imoveisRes, atividadesRes, rLeads, rAct] = await Promise.all([
-        supabase.from('leads').select('*'),
-        supabase.from('imoveis').select('*'),
-        supabase.from('atividades').select('*', { count: 'exact' }).eq('concluida', false),
-        supabase.from('leads').select('*').order('created_at', { ascending: false }).limit(5),
-        supabase.from('atividades').select('*').order('created_at', { ascending: false }).limit(5),
+        db.from('leads').select('*'),
+        db.from('imoveis').select('*'),
+        db.from('atividades').select('*', { count: 'exact' }).eq('concluida', false),
+        db.from('leads').select('*').order('created_at', { ascending: false }).limit(5),
+        db.from('atividades').select('*').order('created_at', { ascending: false }).limit(5),
       ])
-      const leads = leadsRes.data ?? []
-      const imoveis = imoveisRes.data ?? []
+      const leads = (leadsRes.data ?? []) as { status: string }[]
+      const imoveis = (imoveisRes.data ?? []) as { status: string; valor: number }[]
       setStats({
         totalLeads: leads.length,
         leadsNovos: leads.filter(l => l.status === 'novo').length,
@@ -46,8 +49,8 @@ export default function DashboardPage() {
         valorCarteira: imoveis.filter(i => i.status === 'disponivel').reduce((s, i) => s + Number(i.valor), 0),
         atividadesPendentes: atividadesRes.count ?? 0,
       })
-      setRecentLeads(rLeads.data ?? [])
-      setRecentActivities(rAct.data ?? [])
+      setRecentLeads((rLeads.data ?? []) as RecentLead[])
+      setRecentActivities((rAct.data ?? []) as RecentAct[])
       setLoading(false)
     }
     load()
