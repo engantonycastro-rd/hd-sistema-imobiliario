@@ -1,0 +1,72 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  * {
+    @apply border-glass-border;
+  }
+
+  body {
+    @apply bg-navy-900 text-white overflow-x-hidden;
+  }
+
+  ::-webkit-scrollbar {
+    width: 6px;
+  }
+
+  ::-webkit-scrollbar-track {
+    background: rgba(10, 22, 40, 0.5);
+  }
+
+  ::-webkit-scrollbar-thumb {
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 3px;
+  }
+
+  ::-webkit-scrollbar-thumb:hover {
+    background: rgba(255, 255, 255, 0.2);
+  }
+}
+
+@layer components {
+  .glass-card {
+    @apply bg-glass-bg border border-glass-border rounded-2xl backdrop-blur-xl;
+  }
+
+  .glass-card-hover {
+    @apply glass-card transition-all duration-300 hover:border-glass-border-hover hover:-translate-y-0.5;
+  }
+
+  .btn-primary {
+    @apply px-6 py-3 bg-gradient-to-br from-accent to-accent-dark text-white font-display font-bold rounded-xl
+           transition-all duration-300 hover:shadow-[0_8px_30px_rgba(232,101,10,0.35)] hover:-translate-y-0.5
+           active:translate-y-0;
+  }
+
+  .btn-ghost {
+    @apply px-6 py-3 border border-glass-border text-white/70 font-medium rounded-xl
+           transition-all duration-300 hover:bg-white/5 hover:text-white hover:border-white/15;
+  }
+
+  .input-field {
+    @apply w-full px-4 py-3.5 bg-navy-900/60 border border-white/10 rounded-xl text-white text-sm
+           placeholder:text-white/30 transition-all duration-300 outline-none
+           focus:border-accent/50 focus:bg-navy-900/80 focus:ring-2 focus:ring-accent/10;
+  }
+
+  .sidebar-link {
+    @apply flex items-center gap-3 px-4 py-2.5 rounded-xl text-sm font-medium text-white/50
+           transition-all duration-200 hover:text-white hover:bg-white/5;
+  }
+
+  .sidebar-link.active {
+    @apply text-white bg-accent/10 border border-accent/20;
+  }
+}
+
+@layer utilities {
+  .text-gradient-accent {
+    @apply bg-gradient-to-r from-accent to-accent-light bg-clip-text text-transparent;
+  }
+}
